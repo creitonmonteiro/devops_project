@@ -14,7 +14,10 @@ env:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on:
+      - self-hosted
+      - windows
+      - minikube
     timeout-minutes: 30
     permissions:
       contents: read
@@ -28,24 +31,12 @@ jobs:
         with:
           version: v1.30.0
 
-      - name: Configure kubeconfig
+      - name: Validate local cluster access
         shell: bash
-        env:
-          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
         run: |
           set -euo pipefail
-
-          mkdir -p "$HOME/.kube"
-
-          if [[ -n "${KUBE_CONFIG:-}" ]]; then
-            printf '%s' "$KUBE_CONFIG" > "$HOME/.kube/config"
-          else
-            echo "Defina KUBE_CONFIG nos secrets do repositório." >&2
-            exit 1
-          fi
-
-          chmod 600 "$HOME/.kube/config"
           kubectl version --client
+          kubectl config current-context
           kubectl cluster-info
 
       - name: Create Kubernetes env file
