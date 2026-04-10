@@ -12,6 +12,13 @@ env:
   SECRET_NAME: task-manager-secrets
   ENV_FILE: .env.k8s
   KUBECTL_BIN: kubectl.exe
+  DATABASE_SCHEME: postgresql+psycopg
+  POSTGRES_HOST: postgres-service
+  POSTGRES_PORT: '5432'
+  POSTGRES_DB: taskmanager
+  POSTGRES_USER: taskmanager
+  ALGORITHM: HS256
+  ACCESS_TOKEN_EXPIRE_MINUTES: '30'
 
 jobs:
   deploy:
@@ -56,13 +63,41 @@ jobs:
       - name: Create Kubernetes env file
         shell: pwsh
         env:
-          ENV_K8S: ${{ secrets.ENV_K8S }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         run: |
-          if ([string]::IsNullOrWhiteSpace($env:ENV_K8S)) {
-            throw 'Defina o secret ENV_K8S com o conteudo do arquivo .env.k8s.'
+          $requiredSecrets = @{
+            SECRET_KEY = $env:SECRET_KEY
+            POSTGRES_PASSWORD = $env:POSTGRES_PASSWORD
           }
 
-          Set-Content -Path $env:ENV_FILE -Value $env:ENV_K8S -Encoding utf8NoBOM
+          $missingSecrets = $requiredSecrets.GetEnumerator() |
+            Where-Object { [string]::IsNullOrWhiteSpace($_.Value) } |
+            Select-Object -ExpandProperty Key
+
+          if ($missingSecrets) {
+            throw "Defina os secrets obrigatorios no GitHub Actions: $($missingSecrets -join ', ')."
+          }
+
+          $encodedPostgresUser = [uri]::EscapeDataString($env:POSTGRES_USER)
+          $encodedPostgresPassword = [uri]::EscapeDataString($env:POSTGRES_PASSWORD)
+          $databaseUrl = "{0}://{1}:{2}@{3}:{4}/{5}" -f `
+            $env:DATABASE_SCHEME,
+            $encodedPostgresUser,
+            $encodedPostgresPassword,
+            $env:POSTGRES_HOST,
+            $env:POSTGRES_PORT,
+            $env:POSTGRES_DB
+
+          @(
+            "DATABASE_URL=$databaseUrl"
+            "SECRET_KEY=$env:SECRET_KEY"
+            "ALGORITHM=$env:ALGORITHM"
+            "ACCESS_TOKEN_EXPIRE_MINUTES=$env:ACCESS_TOKEN_EXPIRE_MINUTES"
+            "POSTGRES_DB=$env:POSTGRES_DB"
+            "POSTGRES_USER=$env:POSTGRES_USER"
+            "POSTGRES_PASSWORD=$env:POSTGRES_PASSWORD"
+          ) | Set-Content -Path $env:ENV_FILE -Encoding utf8NoBOM
 
           if (-not (Test-Path $env:ENV_FILE) -or (0 -eq (Get-Item $env:ENV_FILE).Length)) {
             throw "Arquivo $env:ENV_FILE nao foi criado corretamente."
