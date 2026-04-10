@@ -40,7 +40,7 @@ jobs:
           version: v1.30.0
 
       - name: Resolve Git Bash
-        shell: pwsh
+        shell: powershell
         run: |
           $git = (Get-Command git -ErrorAction Stop).Source
           $gitCmdDir = Split-Path $git -Parent
@@ -54,14 +54,14 @@ jobs:
           "GIT_BASH=$bash" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Validate local cluster access
-        shell: pwsh
+        shell: powershell
         run: |
           kubectl version --client
           kubectl config current-context
           kubectl cluster-info
 
       - name: Create Kubernetes env file
-        shell: pwsh
+        shell: powershell
         env:
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
@@ -104,13 +104,13 @@ jobs:
           }
 
       - name: Deploy stack
-        shell: pwsh
+        shell: powershell
         run: |
           & $env:GIT_BASH --noprofile --norc -e -o pipefail scripts/apply-dev-stack.sh --namespace "$env:K8S_NAMESPACE" --secret-name "$env:SECRET_NAME" --env-file "$env:ENV_FILE"
 
       - name: Show cluster state
         if: always()
-        shell: pwsh
+        shell: powershell
         run: |
           kubectl get namespace "$env:K8S_NAMESPACE"
           if ($LASTEXITCODE -ne 0) {
