@@ -11,6 +11,7 @@ env:
   K8S_NAMESPACE: task-manager
   SECRET_NAME: task-manager-secrets
   ENV_FILE: .env.k8s
+  KUBECTL_BIN: kubectl.exe
 
 jobs:
   deploy:
@@ -31,48 +32,54 @@ jobs:
         with:
           version: v1.30.0
 
-      - name: Validate local cluster access
-        shell: bash
+      - name: Resolve Git Bash
+        shell: pwsh
         run: |
-          set -euo pipefail
+          $git = (Get-Command git -ErrorAction Stop).Source
+          $gitCmdDir = Split-Path $git -Parent
+          $gitRoot = Split-Path $gitCmdDir -Parent
+          $bash = Join-Path $gitRoot 'bin/bash.exe'
+
+          if (-not (Test-Path $bash)) {
+            throw "Git Bash not found at $bash"
+          }
+
+          "GIT_BASH=$bash" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Validate local cluster access
+        shell: pwsh
+        run: |
           kubectl version --client
           kubectl config current-context
           kubectl cluster-info
 
       - name: Create Kubernetes env file
-        shell: bash
+        shell: pwsh
         env:
           ENV_K8S: ${{ secrets.ENV_K8S }}
         run: |
-          set -euo pipefail
+          if ([string]::IsNullOrWhiteSpace($env:ENV_K8S)) {
+            throw 'Defina o secret ENV_K8S com o conteudo do arquivo .env.k8s.'
+          }
 
-          if [[ -z "${ENV_K8S:-}" ]]; then
-            echo "Defina o secret ENV_K8S com o conteudo do arquivo .env.k8s." >&2
-            exit 1
-          fi
+          Set-Content -Path $env:ENV_FILE -Value $env:ENV_K8S -Encoding utf8NoBOM
 
-          printf '%s\n' "$ENV_K8S" > "$ENV_FILE"
-          test -s "$ENV_FILE"
-
-      - name: Make deploy scripts executable
-        shell: bash
-        run: |
-          set -euo pipefail
-          chmod +x scripts/apply-dev-secrets.sh scripts/apply-dev-stack.sh
+          if (-not (Test-Path $env:ENV_FILE) -or (0 -eq (Get-Item $env:ENV_FILE).Length)) {
+            throw "Arquivo $env:ENV_FILE nao foi criado corretamente."
+          }
 
       - name: Deploy stack
-        shell: bash
+        shell: pwsh
         run: |
-          set -euo pipefail
-          ./scripts/apply-dev-stack.sh \
-            --namespace "$K8S_NAMESPACE" \
-            --secret-name "$SECRET_NAME" \
-            --env-file "$ENV_FILE"
+          & $env:GIT_BASH --noprofile --norc -e -o pipefail scripts/apply-dev-stack.sh --namespace "$env:K8S_NAMESPACE" --secret-name "$env:SECRET_NAME" --env-file "$env:ENV_FILE"
 
       - name: Show cluster state
         if: always()
-        shell: bash
+        shell: pwsh
         run: |
-          set +e
-          kubectl get namespace "$K8S_NAMESPACE"
-          kubectl get jobs,pods,svc,deploy -n "$K8S_NAMESPACE"
+          kubectl get namespace "$env:K8S_NAMESPACE"
+          if ($LASTEXITCODE -ne 0) {
+            exit 0
+          }
+
+          kubectl get jobs,pods,svc,deploy -n "$env:K8S_NAMESPACE"
