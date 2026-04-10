@@ -63,9 +63,20 @@ jobs:
       - name: Create Kubernetes env file
         shell: powershell
         env:
+          ENV_K8S: ${{ secrets.ENV_K8S }}
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         run: |
+          if (-not [string]::IsNullOrWhiteSpace($env:ENV_K8S)) {
+            Set-Content -Path $env:ENV_FILE -Value $env:ENV_K8S -Encoding utf8NoBOM
+
+            if (-not (Test-Path $env:ENV_FILE) -or (0 -eq (Get-Item $env:ENV_FILE).Length)) {
+              throw "Arquivo $env:ENV_FILE nao foi criado corretamente."
+            }
+
+            exit 0
+          }
+
           $requiredSecrets = @{
             SECRET_KEY = $env:SECRET_KEY
             POSTGRES_PASSWORD = $env:POSTGRES_PASSWORD
@@ -76,7 +87,7 @@ jobs:
             Select-Object -ExpandProperty Key
 
           if ($missingSecrets) {
-            throw "Defina os secrets obrigatorios no GitHub Actions: $($missingSecrets -join ', ')."
+            throw "Defina o secret ENV_K8S com o conteudo do arquivo .env.k8s ou cadastre os secrets obrigatorios: $($missingSecrets -join ', ')."
           }
 
           $encodedPostgresUser = [uri]::EscapeDataString($env:POSTGRES_USER)
