@@ -8,6 +8,7 @@ on:
   workflow_dispatch: {}
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
   K8S_NAMESPACE: task-manager
   SECRET_NAME: task-manager-secrets
   ENV_FILE: .env.k8s
@@ -32,7 +33,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup kubectl
         uses: azure/setup-kubectl@v4
