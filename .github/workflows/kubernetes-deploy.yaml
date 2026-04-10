@@ -32,7 +32,6 @@ jobs:
         shell: bash
         env:
           KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
-          KUBE_CONFIG_B64: ${{ secrets.KUBE_CONFIG_B64 }}
         run: |
           set -euo pipefail
 
@@ -45,6 +44,52 @@ jobs:
           else
             echo "Defina KUBE_CONFIG ou KUBE_CONFIG_B64 nos secrets do repositório." >&2
             exit 1
+          fi
+
+          write_secret_file() {
+            target_file=$1
+            raw_value=$2
+            b64_value=$3
+
+            if [[ -n "$raw_value" ]]; then
+              printf '%s' "$raw_value" > "$target_file"
+              return 0
+            fi
+
+            if [[ -n "$b64_value" ]]; then
+              printf '%s' "$b64_value" | base64 -d > "$target_file"
+              return 0
+            fi
+
+            return 1
+          }
+
+          current_context=$(kubectl config current-context)
+          cluster_name=$(kubectl config view -o jsonpath="{.contexts[?(@.name=='$current_context')].context.cluster}")
+          user_name=$(kubectl config view -o jsonpath="{.contexts[?(@.name=='$current_context')].context.user}")
+
+          if write_secret_file "$HOME/.kube/ca.crt" "${KUBE_CA_CRT:-}" "${KUBE_CA_CRT_B64:-}"; then
+            kubectl config set-cluster "$cluster_name" \
+              --certificate-authority="$HOME/.kube/ca.crt" \
+              --embed-certs=true >/dev/null
+          fi
+
+          client_cert_written=0
+          client_key_written=0
+
+          if write_secret_file "$HOME/.kube/client.crt" "${KUBE_CLIENT_CERT:-}" "${KUBE_CLIENT_CERT_B64:-}"; then
+            client_cert_written=1
+          fi
+
+          if write_secret_file "$HOME/.kube/client.key" "${KUBE_CLIENT_KEY:-}" "${KUBE_CLIENT_KEY_B64:-}"; then
+            client_key_written=1
+          fi
+
+          if [[ "$client_cert_written" -eq 1 && "$client_key_written" -eq 1 ]]; then
+            kubectl config set-credentials "$user_name" \
+              --client-certificate="$HOME/.kube/client.crt" \
+              --client-key="$HOME/.kube/client.key" \
+              --embed-certs=true >/dev/null
           fi
 
           chmod 600 "$HOME/.kube/config"
