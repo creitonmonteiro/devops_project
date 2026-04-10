@@ -1,0 +1,90 @@
+name: Kubernetes Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch: {}
+
+env:
+  K8S_NAMESPACE: task-manager
+  SECRET_NAME: task-manager-secrets
+  ENV_FILE: .env.k8s
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.30.0
+
+      - name: Configure kubeconfig
+        shell: bash
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+          KUBE_CONFIG_B64: ${{ secrets.KUBE_CONFIG_B64 }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p "$HOME/.kube"
+
+          if [[ -n "${KUBE_CONFIG:-}" ]]; then
+            printf '%s' "$KUBE_CONFIG" > "$HOME/.kube/config"
+          elif [[ -n "${KUBE_CONFIG_B64:-}" ]]; then
+            printf '%s' "$KUBE_CONFIG_B64" | base64 -d > "$HOME/.kube/config"
+          else
+            echo "Defina KUBE_CONFIG ou KUBE_CONFIG_B64 nos secrets do repositório." >&2
+            exit 1
+          fi
+
+          chmod 600 "$HOME/.kube/config"
+          kubectl version --client
+          kubectl cluster-info
+
+      - name: Create Kubernetes env file
+        shell: bash
+        env:
+          ENV_K8S: ${{ secrets.ENV_K8S }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${ENV_K8S:-}" ]]; then
+            echo "Defina o secret ENV_K8S com o conteudo do arquivo .env.k8s." >&2
+            exit 1
+          fi
+
+          printf '%s\n' "$ENV_K8S" > "$ENV_FILE"
+          test -s "$ENV_FILE"
+
+      - name: Make deploy scripts executable
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x scripts/apply-dev-secrets.sh scripts/apply-dev-stack.sh
+
+      - name: Deploy stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./scripts/apply-dev-stack.sh \
+            --namespace "$K8S_NAMESPACE" \
+            --secret-name "$SECRET_NAME" \
+            --env-file "$ENV_FILE"
+
+      - name: Show cluster state
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          kubectl get namespace "$K8S_NAMESPACE"
+          kubectl get jobs,pods,svc,deploy -n "$K8S_NAMESPACE"
