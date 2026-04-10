@@ -67,8 +67,10 @@ jobs:
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         run: |
+          $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+
           if (-not [string]::IsNullOrWhiteSpace($env:ENV_K8S)) {
-            Set-Content -Path $env:ENV_FILE -Value $env:ENV_K8S -Encoding utf8NoBOM
+            [System.IO.File]::WriteAllText($env:ENV_FILE, $env:ENV_K8S, $utf8NoBom)
 
             if (-not (Test-Path $env:ENV_FILE) -or (0 -eq (Get-Item $env:ENV_FILE).Length)) {
               throw "Arquivo $env:ENV_FILE nao foi criado corretamente."
@@ -100,7 +102,7 @@ jobs:
             $env:POSTGRES_PORT,
             $env:POSTGRES_DB
 
-          @(
+          $envLines = @(
             "DATABASE_URL=$databaseUrl"
             "SECRET_KEY=$env:SECRET_KEY"
             "ALGORITHM=$env:ALGORITHM"
@@ -108,7 +110,9 @@ jobs:
             "POSTGRES_DB=$env:POSTGRES_DB"
             "POSTGRES_USER=$env:POSTGRES_USER"
             "POSTGRES_PASSWORD=$env:POSTGRES_PASSWORD"
-          ) | Set-Content -Path $env:ENV_FILE -Encoding utf8NoBOM
+          )
+
+          [System.IO.File]::WriteAllLines($env:ENV_FILE, $envLines, $utf8NoBom)
 
           if (-not (Test-Path $env:ENV_FILE) -or (0 -eq (Get-Item $env:ENV_FILE).Length)) {
             throw "Arquivo $env:ENV_FILE nao foi criado corretamente."
