@@ -469,6 +469,188 @@ data:
               "refId": "B"
             }
           ]
+        },
+        {
+          "type": "timeseries",
+          "title": "HTTP Requisições por segundo (total)",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 43 },
+          "id": 21,
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "custom": {
+                "drawStyle": "line",
+                "fillOpacity": 20,
+                "lineInterpolation": "smooth",
+                "showPoints": "never"
+              }
+            }
+          },
+          "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "rate(http_requests_total{job=\"task_manager_app\"}[5m])",
+              "legendFormat": "total",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "HTTP Requisições por endpoint (5m rate)",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 43 },
+          "id": 22,
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "custom": {
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "lineInterpolation": "smooth",
+                "showPoints": "never"
+              }
+            }
+          },
+          "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "sum by (handler) (rate(http_requests_total{job=\"task_manager_app\"}[5m]))",
+              "legendFormat": "{{handler}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "piechart",
+          "title": "HTTP Requisições por método (total)",
+          "gridPos": { "h": 8, "w": 8, "x": 0, "y": 51 },
+          "id": 23,
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              }
+            }
+          },
+          "options": { "legend": { "displayMode": "list", "placement": "right" }, "pieType": "donut" },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "sum by (method) (increase(http_requests_total{job=\"task_manager_app\"}[1h]))",
+              "legendFormat": "{{method}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "piechart",
+          "title": "HTTP Status Codes (total)",
+          "gridPos": { "h": 8, "w": 8, "x": 8, "y": 51 },
+          "id": 24,
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              }
+            }
+          },
+          "options": { "legend": { "displayMode": "list", "placement": "right" }, "pieType": "donut" },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "sum by (status) (increase(http_requests_total{job=\"task_manager_app\"}[1h]))",
+              "legendFormat": "{{status}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "HTTP Latência por endpoint (ms — p50, p95, p99)",
+          "gridPos": { "h": 9, "w": 12, "x": 0, "y": 59 },
+          "id": 25,
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms",
+              "custom": {
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "lineInterpolation": "smooth",
+                "showPoints": "never"
+              }
+            }
+          },
+          "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "histogram_quantile(0.50, sum by (handler, le) (rate(http_request_duration_seconds_bucket{job=\"task_manager_app\"}[5m]))) * 1000",
+              "legendFormat": "p50 {{handler}}",
+              "refId": "A"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "histogram_quantile(0.95, sum by (handler, le) (rate(http_request_duration_seconds_bucket{job=\"task_manager_app\"}[5m]))) * 1000",
+              "legendFormat": "p95 {{handler}}",
+              "refId": "B"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "histogram_quantile(0.99, sum by (handler, le) (rate(http_request_duration_seconds_bucket{job=\"task_manager_app\"}[5m]))) * 1000",
+              "legendFormat": "p99 {{handler}}",
+              "refId": "C"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Tamanho requisição/resposta (bytes)",
+          "gridPos": { "h": 9, "w": 12, "x": 12, "y": 59 },
+          "id": 26,
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "custom": {
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "lineInterpolation": "smooth",
+                "showPoints": "never"
+              }
+            }
+          },
+          "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "sum by (handler) (rate(http_request_size_bytes_sum{job=\"task_manager_app\"}[5m])) / sum by (handler) (rate(http_request_size_bytes_count{job=\"task_manager_app\"}[5m]))",
+              "legendFormat": "req avg {{handler}}",
+              "refId": "A"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "sum by (handler) (rate(http_response_size_bytes_sum{job=\"task_manager_app\"}[5m])) / sum by (handler) (rate(http_response_size_bytes_count{job=\"task_manager_app\"}[5m]))",
+              "legendFormat": "resp avg {{handler}}",
+              "refId": "B"
+            }
+          ]
         }
       ]
     }
