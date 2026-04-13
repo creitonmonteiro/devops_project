@@ -14,6 +14,8 @@ Este repositório concentra os manifests e scripts de operação do ambiente:
 
 ## Estrutura do repositório
 
+Os manifests Kubernetes estão divididos em arquivos separados por responsabilidade — namespace, banco de dados, migração, aplicação e observabilidade — para permitir que cada componente seja aplicado, atualizado ou removido de forma independente sem afetar os demais. Isso facilita a leitura, o versionamento granular e a automação orquestrada pelos scripts, que aplicam os manifests em ordem de dependência respeitando o ciclo de vida da stack.
+
 ```text
 .
 |-- k8s/
@@ -157,6 +159,8 @@ No driver Docker do Minikube no Windows, mantenha o terminal aberto durante o us
 
 ## Observabilidade
 
+O stack de observabilidade combina Prometheus para coleta e armazenamento de métricas e Grafana para visualização operacional do ambiente. No estado atual, o Prometheus faz scrape de si mesmo e do `node_exporter`, armazenando métricas de disponibilidade, volume de séries na TSDB, quantidade de amostras coletadas por scrape, taxa de ingestão de amostras, uso de memória do processo Prometheus e métricas de infraestrutura do nó, como uso de CPU, memória RAM e espaço livre em disco; essas informações são apresentadas no Grafana em painéis stat e séries temporais já provisionados automaticamente para acompanhamento rápido da saúde do monitoramento e do host.
+
 ### Prometheus
 
 - Manifesto: `k8s/prometheus.yaml`
@@ -175,12 +179,9 @@ No driver Docker do Minikube no Windows, mantenha o terminal aberto durante o us
 
 ## Teste de carga com k6
 
+O script de teste executa dois cenários em paralelo durante 5 minutos cada: `create_users` usa executor `constant-arrival-rate` com taxa constante de 10 requisições por segundo distribuídas entre 10 VUs pré-alocadas (máximo 20) para simular criação concorrente de usuários, enquanto `get_users` usa executor `constant-vus` com 4 VUs constantes para leitura da listagem. Ambos executam checks de validação (status HTTP e estrutura de resposta) e coletam métricas padrão do k6: taxa de sucesso/erro, latência (p50, p95, p99), taxa de throughput e resultados detalhados de cada check, permitindo avaliar capacidade, performance e confiabilidade da API sob carga simulada.
+
 Script: `scripts/loadtest.js`
-
-Cenarios:
-
-- `create_users`: taxa constante de criacao de usuarios.
-- `get_users`: leitura continua da listagem de usuarios.
 
 Execucao:
 
