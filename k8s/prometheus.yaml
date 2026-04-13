@@ -23,6 +23,10 @@ data:
         static_configs:
           - targets: ['task-manager-app-service:8000']
 
+      - job_name: kube_state_metrics
+        static_configs:
+          - targets: ['kube-state-metrics:8080']
+
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

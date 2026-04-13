@@ -107,6 +107,7 @@ MIGRATION_MANIFEST=$(kubectl_path "$ROOT_DIR/k8s/migration.yaml")
 APP_MANIFEST=$(kubectl_path "$ROOT_DIR/k8s/app.yaml")
 GRAFANA_MANIFEST=$(kubectl_path "$ROOT_DIR/k8s/grafana.yaml")
 PROMETHEUS_MANIFEST=$(kubectl_path "$ROOT_DIR/k8s/prometheus.yaml")
+KUBE_STATE_METRICS_MANIFEST=$(kubectl_path "$ROOT_DIR/k8s/kube-state-metrics.yaml")
 
 if ! command -v "$KUBECTL_BIN" >/dev/null 2>&1; then
     echo "Comando obrigatorio nao encontrado: $KUBECTL_BIN" >&2
@@ -137,5 +138,8 @@ wait_for_deployment_rollout grafana grafana
 
 "$KUBECTL_BIN" apply -f "$PROMETHEUS_MANIFEST"
 wait_for_deployment_rollout prometheus prometheus
+
+"$KUBECTL_BIN" apply -f "$KUBE_STATE_METRICS_MANIFEST"
+wait_for_deployment_rollout kube-state-metrics kube-state-metrics
 
 "$KUBECTL_BIN" get pods -n "$NAMESPACE"

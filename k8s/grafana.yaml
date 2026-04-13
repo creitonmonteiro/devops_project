@@ -304,14 +304,14 @@ data:
         },
         {
           "type": "stat",
-          "title": "Task Manager APP UP",
+          "title": "Task Manager APP Pods UP (count)",
           "gridPos": { "h": 4, "w": 6, "x": 0, "y": 26 },
           "id": 13,
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "targets": [
             {
               "datasource": { "type": "prometheus", "uid": "prometheus" },
-              "expr": "up{job=\"task_manager_app\"}",
+              "expr": "count(kube_pod_status_ready{namespace=\"task-manager\",condition=\"true\",pod=~\"task-manager-app-.*\"} == 1)",
               "refId": "A"
             }
           ],
@@ -401,6 +401,72 @@ data:
               "expr": "process_resident_memory_bytes{job=\"task_manager_app\"}",
               "legendFormat": "{{instance}}",
               "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "stat",
+          "title": "Pods da app disponíveis",
+          "gridPos": { "h": 4, "w": 8, "x": 0, "y": 39 },
+          "id": 18,
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "kube_deployment_status_replicas_available{namespace=\"task-manager\",deployment=\"task-manager-app\"}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "short", "decimals": 0 } },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } }
+        },
+        {
+          "type": "stat",
+          "title": "Pods desejados (spec)",
+          "gridPos": { "h": 4, "w": 8, "x": 8, "y": 39 },
+          "id": 19,
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "kube_deployment_spec_replicas{namespace=\"task-manager\",deployment=\"task-manager-app\"}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "short", "decimals": 0 } },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Pods disponíveis vs desejados",
+          "gridPos": { "h": 4, "w": 8, "x": 16, "y": 39 },
+          "id": 20,
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "decimals": 0,
+              "custom": {
+                "drawStyle": "line",
+                "fillOpacity": 15,
+                "lineInterpolation": "smooth",
+                "showPoints": "never"
+              }
+            }
+          },
+          "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "kube_deployment_status_replicas_available{namespace=\"task-manager\",deployment=\"task-manager-app\"}",
+              "legendFormat": "disponiveis",
+              "refId": "A"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "kube_deployment_spec_replicas{namespace=\"task-manager\",deployment=\"task-manager-app\"}",
+              "legendFormat": "desejados",
+              "refId": "B"
             }
           ]
         }

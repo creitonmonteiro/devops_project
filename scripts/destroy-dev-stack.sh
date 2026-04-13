@@ -55,6 +55,7 @@ MIGRATION_MANIFEST=$(kubectl_path "$ROOT_DIR/k8s/migration.yaml")
 APP_MANIFEST=$(kubectl_path "$ROOT_DIR/k8s/app.yaml")
 GRAFANA_MANIFEST=$(kubectl_path "$ROOT_DIR/k8s/grafana.yaml")
 PROMETHEUS_MANIFEST=$(kubectl_path "$ROOT_DIR/k8s/prometheus.yaml")
+KUBE_STATE_METRICS_MANIFEST=$(kubectl_path "$ROOT_DIR/k8s/kube-state-metrics.yaml")
 
 if ! command -v "$KUBECTL_BIN" >/dev/null 2>&1; then
     echo "Comando obrigatorio nao encontrado: $KUBECTL_BIN" >&2
@@ -67,6 +68,7 @@ if ! "$KUBECTL_BIN" get namespace "$NAMESPACE" >/dev/null 2>&1; then
 fi
 
 "$KUBECTL_BIN" delete -f "$PROMETHEUS_MANIFEST" --ignore-not-found=true
+"$KUBECTL_BIN" delete -f "$KUBE_STATE_METRICS_MANIFEST" --ignore-not-found=true
 "$KUBECTL_BIN" delete -f "$GRAFANA_MANIFEST" --ignore-not-found=true
 "$KUBECTL_BIN" delete -f "$APP_MANIFEST" --ignore-not-found=true
 "$KUBECTL_BIN" delete -f "$MIGRATION_MANIFEST" --ignore-not-found=true
