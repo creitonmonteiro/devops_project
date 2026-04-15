@@ -84,7 +84,8 @@ jobs:
             exit 1
           fi
 
-          kubectl get jobs,pods,svc,deploy -n "$env:K8S_NAMESPACE"bash
+      - name: Deploy stack
+        shell: bash
         run: |
           bash scripts/apply-dev-stack.sh --namespace "$K8S_NAMESPACE" --secret-name "$SECRET_NAME" --env-file "$ENV_FILE"
 
