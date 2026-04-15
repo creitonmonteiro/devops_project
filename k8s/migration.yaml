@@ -11,6 +11,24 @@ spec:
         app: task-manager-migrate
     spec:
       restartPolicy: OnFailure
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.35
+          command:
+            - sh
+            - -c
+            - |
+              echo "Aguardando PostgreSQL ficar pronto..."
+              for i in $(seq 1 30); do
+                if nc -z postgres-service 5432; then
+                  echo "PostgreSQL está pronto!"
+                  exit 0
+                fi
+                echo "Tentativa $i de 30 - aguardando..."
+                sleep 2
+              done
+              echo "Timeout esperando PostgreSQL"
+              exit 1
       containers:
         - name: migrate
           image: creitonmonteiro/task_manager_app:latest
@@ -19,7 +37,9 @@ spec:
             - sh
             - -c
             - |
+              echo "Iniciando migration..."
               poetry run alembic upgrade head
+              echo "Migration concluída com sucesso!"
           env:
             - name: DATABASE_URL
               valueFrom:
