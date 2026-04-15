@@ -47,21 +47,7 @@ jobs:
           kubectl cluster-info
 
       - name: Create Kubernetes env file
-        shell: powershell
-        env:
-          ENV_K8S: ${{ secrets.ENV_K8S }}
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-        run: |
-          $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-
-          if (-not [string]::IsNullOrWhiteSpace($env:ENV_K8S)) {
-            [System.IO.File]::WriteAllText($env:ENV_FILE, $env:ENV_K8S, $utf8NoBom)
-
-            if (-not (Test-Path $env:ENV_FILE) -or (0 -eq (Get-Item $env:ENV_FILE).Length)) {
-              throw "Arquivo $env:ENV_FILE nao foi criado corretamente."
-            }
-bash
+        shell: bash
         env:
           ENV_K8S: ${{ secrets.ENV_K8S }}
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
